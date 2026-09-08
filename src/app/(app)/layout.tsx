@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { MobileNav } from "@/components/navigation/mobile-nav";
 import { getClubContext } from "@/data/club";
 
@@ -20,12 +21,15 @@ export default async function ClubAppLayout({
             Your account is signed in but does not have an active club
             membership. Ask the club administrator to confirm your invitation.
           </p>
-          <Link
-            className="mt-6 inline-flex rounded-full border border-white/15 px-5 py-3 text-sm font-semibold"
-            href="/"
-          >
-            Return home
-          </Link>
+          <div className="mt-6 flex justify-center gap-2">
+            <Link
+              className="inline-flex min-h-10 items-center rounded-full border border-white/15 px-4 text-xs font-semibold"
+              href="/"
+            >
+              Return home
+            </Link>
+            <SignOutButton />
+          </div>
         </section>
       </main>
     );
@@ -48,8 +52,11 @@ export default async function ClubAppLayout({
             <span className="font-semibold">{context.club.name}</span>
           </span>
         </Link>
-        <div className="hidden lg:block">
-          <MobileNav isAdmin={context.role === "admin"} />
+        <div className="flex items-center gap-2">
+          <div className="hidden lg:block">
+            <MobileNav isAdmin={context.role === "admin"} />
+          </div>
+          <SignOutButton />
         </div>
       </header>
       <div className="mx-auto w-full max-w-5xl px-5 pt-4 pb-28 lg:pb-10">
