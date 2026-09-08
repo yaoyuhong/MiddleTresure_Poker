@@ -55,6 +55,12 @@ an existing user and never prints the service-role key.
 The administrator opens the invitation email and signs in once to activate the
 membership. All later invitations happen through **Manage → Invite members**.
 
+For a hosted bootstrap, add `SUPABASE_SERVICE_ROLE_KEY` to GitHub repository
+secrets, then run **Actions → Bootstrap Club Admin** from `main`. Supply a
+publicly reachable HTTPS site URL because it is embedded in the one-time
+invitation link. The workflow suppresses command output so the administrator
+email is not written to logs.
+
 ## 3. Configure Authentication
 
 In **Authentication → URL Configuration**:

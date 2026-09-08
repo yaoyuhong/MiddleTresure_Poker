@@ -1,0 +1,85 @@
+name: Bootstrap Club Admin
+
+on:
+  workflow_dispatch:
+    inputs:
+      club_name:
+        description: Club display name
+        required: true
+        default: Middle Treasure Poker
+        type: string
+      admin_email:
+        description: Email that receives the administrator invitation
+        required: true
+        type: string
+      display_name:
+        description: Administrator display name
+        required: true
+        type: string
+      site_url:
+        description: Public HTTPS application URL
+        required: true
+        type: string
+      unit_name:
+        description: Chip/accounting unit
+        required: true
+        default: chips
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bootstrap-club-admin
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    name: Create club and invite administrator
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      NEXT_PUBLIC_SUPABASE_URL: https://${{ secrets.SUPABASE_PROJECT_ID }}.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      CLUB_NAME: ${{ inputs.club_name }}
+      ADMIN_EMAIL: ${{ inputs.admin_email }}
+      DISPLAY_NAME: ${{ inputs.display_name }}
+      SITE_URL: ${{ inputs.site_url }}
+      UNIT_NAME: ${{ inputs.unit_name }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check required secrets
+        shell: bash
+        run: |
+          test -n "$SUPABASE_SERVICE_ROLE_KEY" || {
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY is not configured"
+            exit 1
+          }
+          test -n "$SUPABASE_PROJECT_ID" || {
+            echo "::error::SUPABASE_PROJECT_ID is not configured"
+            exit 1
+          }
+
+      - name: Create club and invite administrator
+        shell: bash
+        run: |
+          pnpm bootstrap:admin -- \
+            --club-name "$CLUB_NAME" \
+            --admin-email "$ADMIN_EMAIL" \
+            --display-name "$DISPLAY_NAME" \
+            --site-url "$SITE_URL" \
+            --unit-name "$UNIT_NAME" >/dev/null
+          echo "Club bootstrap completed and administrator invitation requested."
