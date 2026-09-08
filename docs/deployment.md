@@ -22,6 +22,17 @@ monitoring.
 
 5. Confirm every migration appears under **Database → Migrations**.
 
+Alternatively, configure these GitHub Actions repository secrets:
+
+- `SUPABASE_ACCESS_TOKEN`
+- `SUPABASE_DB_PASSWORD`
+- `SUPABASE_PROJECT_ID`
+
+Then run **Actions → Deploy Supabase → Run workflow** from `main`. The manual
+workflow validates all three secrets before linking the project and applying
+pending migrations. Its `production` environment can be configured with
+required reviewers for an additional release gate.
+
 ## 2. Bootstrap the First Administrator
 
 Create a local `.env.local` file containing the project URL, publishable key,
