@@ -31,7 +31,9 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Start local Supabase
-        run: pnpm exec supabase start
+        run: |
+          pnpm exec supabase stop --all --no-backup || true
+          pnpm exec supabase start
 
       - name: Reset and test database
         run: |
@@ -49,3 +51,7 @@ jobs:
           pnpm reset:debug-club -- --help
           pnpm build
           pnpm exec playwright test
+
+      - name: Stop local Supabase
+        if: always()
+        run: pnpm exec supabase stop --all --no-backup
