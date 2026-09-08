@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const features = [
   ["Live table", "Buy-ins, add-ons, joins, and exits stay in sync."],
   ["Zero-sum close", "Balance every game before results are locked."],
@@ -23,12 +25,12 @@ export default function Home() {
               PRIVATE CLUB
             </span>
           </div>
-          <button
+          <Link
             className="border-sand/20 text-sand hover:border-mint/70 hover:text-mint rounded-full border px-4 py-2 text-sm font-semibold transition"
-            type="button"
+            href="/login"
           >
             Member sign in
-          </button>
+          </Link>
         </header>
 
         <section className="grid flex-1 items-center gap-12 py-16 lg:grid-cols-[1.15fr_0.85fr] lg:py-20">
@@ -47,12 +49,12 @@ export default function Home() {
               settlement, and season standings.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <button
+              <Link
                 className="bg-mint text-ink hover:bg-mint-bright rounded-full px-6 py-3.5 font-bold transition"
-                type="button"
+                href="/login"
               >
                 Open club
-              </button>
+              </Link>
               <span className="text-sand/45 flex items-center px-2 text-sm">
                 Access requires an invitation
               </span>
