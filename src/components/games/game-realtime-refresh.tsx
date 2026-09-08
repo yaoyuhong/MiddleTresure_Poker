@@ -47,6 +47,16 @@ export function GameRealtimeRefresh({ gameId }: { readonly gameId: string }) {
         },
         refresh,
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "game_action_requests",
+          filter: `game_id=eq.${gameId}`,
+        },
+        refresh,
+      )
       .subscribe();
 
     return () => {
