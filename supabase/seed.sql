@@ -1,0 +1,2 @@
+-- Development records are created by test helpers so this seed remains safe
+-- for every local developer and contains no real member identity.

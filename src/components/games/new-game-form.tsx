@@ -1,0 +1,108 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useRef, useState, type FormEvent } from "react";
+
+export function NewGameForm({
+  seasonId,
+}: {
+  readonly seasonId: string | null;
+}) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState(false);
+  const [ambiguous, setAmbiguous] = useState(false);
+  const retryRequest = useRef<{ requestId: string; name: string } | null>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!seasonId) {
+      return;
+    }
+
+    const form = new FormData(event.currentTarget);
+    const name =
+      retryRequest.current?.name ?? String(form.get("name") ?? "").trim();
+    retryRequest.current ??= {
+      requestId: crypto.randomUUID(),
+      name,
+    };
+    setPending(true);
+    setError(false);
+    let response: Response;
+    try {
+      response = await fetch("/api/admin/games", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": retryRequest.current.requestId,
+        },
+        body: JSON.stringify({
+          seasonId,
+          name: retryRequest.current.name,
+        }),
+      });
+    } catch {
+      setPending(false);
+      setError(true);
+      setAmbiguous(true);
+      return;
+    }
+    setPending(false);
+    setAmbiguous(response.status >= 500);
+    if (response.status < 500) {
+      retryRequest.current = null;
+    }
+
+    if (response.ok) {
+      const game = (await response.json()) as { id: string };
+      router.push(`/admin/games/${game.id}`);
+    } else {
+      setError(true);
+    }
+  }
+
+  return (
+    <form
+      className="bg-panel max-w-xl rounded-[2rem] border border-white/10 p-6"
+      onSubmit={submit}
+    >
+      <label className="block text-sm font-semibold" htmlFor="gameName">
+        Game name
+      </label>
+      <input
+        className="focus:border-mint mt-2 min-h-12 w-full rounded-2xl border border-white/10 bg-black/20 px-4 outline-none"
+        defaultValue={`Game · ${new Date().toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        })}`}
+        disabled={!seasonId}
+        id="gameName"
+        maxLength={120}
+        name="name"
+        required
+      />
+      <button
+        className="bg-mint text-ink mt-5 min-h-12 w-full rounded-full font-bold disabled:cursor-not-allowed disabled:opacity-40"
+        disabled={!seasonId || pending}
+        type="submit"
+      >
+        {pending
+          ? "Creating game…"
+          : ambiguous
+            ? "Retry same request safely"
+            : "Create draft game"}
+      </button>
+      {!seasonId ? (
+        <p className="mt-3 text-sm text-amber-100" role="status">
+          Open a season before creating a game.
+        </p>
+      ) : null}
+      {error ? (
+        <p className="mt-3 text-sm text-rose-200" role="alert">
+          The game could not be created.
+        </p>
+      ) : null}
+    </form>
+  );
+}
