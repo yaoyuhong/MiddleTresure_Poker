@@ -12,7 +12,8 @@ export default async function ClubHomePage() {
     return null;
   }
 
-  const game = await getActiveGame(context.club.id);
+  const club = context.club;
+  const game = await getActiveGame(club.id);
 
   if (!game) {
     return (
@@ -58,7 +59,7 @@ export default async function ClubHomePage() {
           status={game.status}
           totalBuyIn={game.totalBuyIn}
           totalCashOut={game.totalCashOut}
-          unitName={context.club.unitName}
+          unitName={club.unitName}
         />
         <section>
           <div className="mb-3 flex items-center justify-between">
@@ -73,7 +74,7 @@ export default async function ClubHomePage() {
                 canManage={context.role === "admin"}
                 key={player.id}
                 player={player}
-                unitName={context.club.unitName}
+                unitName={club.unitName}
               />
             ))}
           </div>

@@ -23,6 +23,7 @@ export default async function HistoryPage() {
     return null;
   }
 
+  const club = context.club;
   const supabase = await createServerSupabaseClient();
   const { data: playerData, error: playerError } = await supabase
     .from("game_players")
@@ -93,7 +94,7 @@ export default async function HistoryPage() {
                     player.net_result >= 0 ? "text-mint" : "text-rose-200"
                   }
                 >
-                  {formatSignedUnits(player.net_result, context.club.unitName)}
+                  {formatSignedUnits(player.net_result, club.unitName)}
                 </strong>
               </Link>
             );
