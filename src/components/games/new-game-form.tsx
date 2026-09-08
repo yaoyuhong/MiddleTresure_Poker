@@ -11,7 +11,8 @@ export function NewGameForm({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
-  const requestId = useRef<string | null>(null);
+  const [ambiguous, setAmbiguous] = useState(false);
+  const retryRequest = useRef<{ requestId: string; name: string } | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -20,29 +21,38 @@ export function NewGameForm({
     }
 
     const form = new FormData(event.currentTarget);
+    const name =
+      retryRequest.current?.name ?? String(form.get("name") ?? "").trim();
+    retryRequest.current ??= {
+      requestId: crypto.randomUUID(),
+      name,
+    };
     setPending(true);
     setError(false);
-    requestId.current ??= crypto.randomUUID();
     let response: Response;
     try {
       response = await fetch("/api/admin/games", {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-request-id": requestId.current,
+          "x-request-id": retryRequest.current.requestId,
         },
         body: JSON.stringify({
           seasonId,
-          name: String(form.get("name") ?? "").trim(),
+          name: retryRequest.current.name,
         }),
       });
     } catch {
       setPending(false);
       setError(true);
+      setAmbiguous(true);
       return;
     }
     setPending(false);
-    requestId.current = null;
+    setAmbiguous(response.status >= 500);
+    if (response.status < 500) {
+      retryRequest.current = null;
+    }
 
     if (response.ok) {
       const game = (await response.json()) as { id: string };
@@ -77,7 +87,11 @@ export function NewGameForm({
         disabled={!seasonId || pending}
         type="submit"
       >
-        {pending ? "Creating game…" : "Create draft game"}
+        {pending
+          ? "Creating game…"
+          : ambiguous
+            ? "Retry same request safely"
+            : "Create draft game"}
       </button>
       {!seasonId ? (
         <p className="mt-3 text-sm text-amber-100" role="status">

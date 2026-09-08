@@ -24,7 +24,11 @@ export function CorrectionForm({
   const [rowIds, setRowIds] = useState([0, 1]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
-  const requestId = useRef<string | null>(null);
+  const [ambiguous, setAmbiguous] = useState(false);
+  const retryRequest = useRef<{
+    requestId: string;
+    payload: Record<string, unknown>;
+  } | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,30 +46,38 @@ export function CorrectionForm({
       };
     });
 
+    const payload = retryRequest.current?.payload ?? {
+      expectedVersion: gameVersion,
+      note: String(form.get("note") ?? "").trim(),
+      corrections,
+    };
+    retryRequest.current ??= {
+      requestId: crypto.randomUUID(),
+      payload,
+    };
     setPending(true);
     setError(false);
-    requestId.current ??= crypto.randomUUID();
     let response: Response;
     try {
       response = await fetch(`/api/admin/games/${gameId}/corrections`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-request-id": requestId.current,
+          "x-request-id": retryRequest.current.requestId,
         },
-        body: JSON.stringify({
-          expectedVersion: gameVersion,
-          note: String(form.get("note") ?? "").trim(),
-          corrections,
-        }),
+        body: JSON.stringify(retryRequest.current.payload),
       });
     } catch {
       setPending(false);
       setError(true);
+      setAmbiguous(true);
       return;
     }
     setPending(false);
-    requestId.current = null;
+    setAmbiguous(response.status >= 500);
+    if (response.status < 500) {
+      retryRequest.current = null;
+    }
 
     if (response.ok) {
       router.push(`/games/${gameId}`);
@@ -163,13 +175,18 @@ export function CorrectionForm({
         disabled={pending || transactions.length === 0}
         type="submit"
       >
-        {pending ? "Validating correction…" : "Apply audited correction"}
+        {pending
+          ? "Validating correction…"
+          : ambiguous
+            ? "Retry exact same correction safely"
+            : "Apply audited correction"}
       </button>
 
       {error ? (
         <p className="text-sm text-rose-200" role="alert">
-          The correction was not saved. Check that each player appears once and
-          all corrected results still sum to zero.
+          {ambiguous
+            ? "The outcome is unknown. Retry submits the exact same correction; reload to abandon it."
+            : "The correction was not saved. Check that each player appears once and all corrected results still sum to zero."}
         </p>
       ) : null}
     </form>

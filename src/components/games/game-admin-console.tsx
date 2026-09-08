@@ -70,7 +70,7 @@ export function GameAdminConsole({
       router.refresh();
       return true;
     }
-    setRetryRequest(null);
+    setRetryRequest(response.status >= 500 ? { body, requestId } : null);
     return false;
   }
 

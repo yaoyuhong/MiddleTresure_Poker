@@ -25,6 +25,10 @@ export function SeasonAdmin({
     const form = new FormData(formElement);
     const name = String(form.get("name") ?? "").trim();
     const key = `create:${name}`;
+    if (retryRequest.current && retryRequest.current.key !== key) {
+      setError(true);
+      return;
+    }
     const requestId =
       retryRequest.current?.key === key
         ? retryRequest.current.requestId
@@ -46,7 +50,9 @@ export function SeasonAdmin({
       return;
     }
 
-    retryRequest.current = null;
+    if (response.status < 500) {
+      retryRequest.current = null;
+    }
     setPending(false);
     if (response.ok) {
       formElement.reset();
@@ -58,6 +64,10 @@ export function SeasonAdmin({
 
   async function changeSeason(seasonId: string, action: "open" | "close") {
     const key = `${action}:${seasonId}`;
+    if (retryRequest.current && retryRequest.current.key !== key) {
+      setError(true);
+      return;
+    }
     const requestId =
       retryRequest.current?.key === key
         ? retryRequest.current.requestId
@@ -77,7 +87,9 @@ export function SeasonAdmin({
       setError(true);
       return;
     }
-    retryRequest.current = null;
+    if (response.status < 500) {
+      retryRequest.current = null;
+    }
     setPending(false);
     if (response.ok) {
       router.refresh();
