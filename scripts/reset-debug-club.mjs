@@ -56,7 +56,12 @@ const { data, error } = await supabase.rpc("reset_debug_club", {
   target_request_id: crypto.randomUUID(),
 });
 if (error) {
-  fail(`Debug reset failed (${error.code ?? "unknown"}).`);
+  const diagnostic = [error.message, error.details, error.hint]
+    .filter(Boolean)
+    .join(" | ");
+  fail(
+    `Debug reset failed (${error.code ?? "unknown"}): ${diagnostic || "No diagnostic details returned"}.`,
+  );
 }
 
 const users = await listAllUsers(supabase);
