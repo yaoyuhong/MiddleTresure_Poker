@@ -11,9 +11,14 @@ const actions = [
     body: "Open a table and record the first buy-ins.",
   },
   {
+    href: "/admin/security",
+    title: "Access security",
+    body: "Set passwords and rotate reusable registration codes.",
+  },
+  {
     href: "/admin/members",
-    title: "Invite members",
-    body: "Manage invite-only access and club roles.",
+    title: "Manage members",
+    body: "Review club access and deactivate member accounts.",
   },
   {
     href: "/admin/seasons",
@@ -53,7 +58,7 @@ export default async function AdminPage() {
         Financial changes are administrator-only and recorded in the audit
         history.
       </p>
-      <div className="mt-8 grid gap-3 sm:grid-cols-3">
+      <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {actions.map((action) => (
           <Link
             className="bg-panel hover:border-mint/30 rounded-3xl border border-white/10 p-5"

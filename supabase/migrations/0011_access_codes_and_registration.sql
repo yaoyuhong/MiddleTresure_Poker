@@ -365,6 +365,35 @@ begin
 end;
 $$;
 
+create or replace function public.get_access_code_status()
+returns table (
+  kind public.access_code_kind,
+  rotated_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  target_club_id uuid;
+begin
+  select id
+  into target_club_id
+  from public.clubs
+  order by created_at
+  limit 1;
+
+  perform public._require_club_admin(target_club_id);
+
+  return query
+  select access_code.kind, access_code.rotated_at
+  from public.club_access_codes access_code
+  where access_code.club_id = target_club_id
+  order by access_code.kind;
+end;
+$$;
+
 revoke all on table public.club_access_codes from public;
 revoke all on table public.registration_attempts from public;
 
@@ -376,3 +405,6 @@ grant execute on function public.complete_code_registration(uuid, text, text, te
 
 revoke all on function public.rotate_access_code(public.access_code_kind, text, uuid) from public;
 grant execute on function public.rotate_access_code(public.access_code_kind, text, uuid) to authenticated;
+
+revoke all on function public.get_access_code_status() from public;
+grant execute on function public.get_access_code_status() to authenticated;

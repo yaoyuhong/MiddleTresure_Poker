@@ -31,5 +31,10 @@ export const passwordUpdateSchema = z
     path: ["confirmation"],
   });
 
+export const accessCodeRotationSchema = z.object({
+  kind: z.enum(["member", "admin"]),
+  requestId: z.string().uuid(),
+});
+
 export type RegistrationInput = z.infer<typeof registrationSchema>;
 export type PasswordLoginInput = z.infer<typeof passwordLoginSchema>;
