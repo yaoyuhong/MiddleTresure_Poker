@@ -53,7 +53,17 @@ and create the audited administrator membership. The command is idempotent for
 an existing user and never prints the service-role key.
 
 The administrator opens the invitation email and signs in once to activate the
-membership. All later invitations happen through **Manage → Invite members**.
+membership. Immediately open **Manage → Access security**:
+
+1. Set a password for the existing administrator account.
+2. Initialize the reusable member code.
+3. Initialize the administrator code only if another administrator needs to
+   register. This code grants administrator access and must not be shared as a
+   member code.
+
+Members then use `/register` with their email, password, and the current member
+code. They become active immediately. Rotating a code blocks future use of the
+old code but does not sign out existing members.
 
 For a hosted bootstrap, add `SUPABASE_SERVICE_ROLE_KEY` to GitHub repository
 secrets, then run **Actions → Bootstrap Club Admin** from `main`. Supply a
@@ -70,16 +80,15 @@ In **Authentication → URL Configuration**:
 - Add `http://127.0.0.1:3000/auth/callback` for local development.
 - Add `https://YOUR_DOMAIN/auth/callback` for production.
 
-In **Authentication → Email**:
+In **Authentication → Providers → Email**:
 
 1. Configure a production SMTP provider and a sender address on a verified
    domain.
-2. Keep email magic-link expiry short.
-3. Test invitation delivery, expired links, and one-time use before inviting
-   real members.
-4. Keep open email signup disabled operationally: users are created by the
-   administrator invitation endpoint, and client sign-in sets
-   `shouldCreateUser: false`.
+2. Disable public email sign-up. The server creates accounts only after
+   validating a club access code.
+3. Keep email confirmation disabled for code registration because the server
+   confirms the account after code validation. SMTP remains useful for the
+   initial administrator bootstrap and future password recovery.
 
 Use token-hash links so invitations work without a browser PKCE verifier. In
 the **Invite user** email template, set the action link to:
@@ -91,8 +100,19 @@ the **Invite user** email template, set the action link to:
 ```
 
 The **Magic Link** template can use the same confirmation route with
-`type=magiclink`. Do not use a raw `{{ .SiteURL }}` link because it does not
-verify or establish a session.
+`type=magiclink`. These links are a bootstrap/recovery path, not routine member
+login. Do not use a raw `{{ .SiteURL }}` link because it does not verify or
+establish a session.
+
+Set the **Reset Password** template action link to:
+
+```html
+<a
+  href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password"
+>
+  Reset password
+</a>
+```
 
 ## 4. Create the Vercel Project
 
@@ -127,9 +147,12 @@ pnpm exec playwright test
 
 Against the preview deployment, verify:
 
-- An uninvited email cannot create an account.
-- An invited member can use the magic link.
-- A member can read but cannot mutate game data.
+- An incorrect or rotated code cannot create an account.
+- The member code creates a member account; the administrator code creates an
+  administrator account.
+- A member can submit a join, add-on, or exit request but cannot write the
+  official game ledger directly.
+- An administrator can approve or reject each request exactly once.
 - An administrator can create and operate a game.
 - Two signed-in browsers receive a live update.
 - An unbalanced game cannot close.

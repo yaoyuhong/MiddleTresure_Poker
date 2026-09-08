@@ -36,6 +36,11 @@ export const gameActionSchema = z.discriminatedUnion("action", [
     action: z.literal("finalize"),
     expectedVersion: version,
   }),
+  z.object({
+    action: z.literal("set-registration"),
+    expectedVersion: version,
+    open: z.boolean(),
+  }),
 ]);
 
 export const createSeasonSchema = z.object({

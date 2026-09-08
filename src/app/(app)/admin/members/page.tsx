@@ -1,6 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { InviteMemberForm } from "@/components/members/invite-member-form";
 import {
   MemberList,
   type MemberListRow,
@@ -81,14 +81,17 @@ export default async function MembersPage() {
           <MemberList members={memberRows} />
         </section>
         <section className="bg-panel h-fit rounded-[2rem] border border-white/10 p-5">
-          <h2 className="text-xl font-semibold">Invite a member</h2>
+          <h2 className="text-xl font-semibold">Add members</h2>
           <p className="text-sand/45 mt-2 text-sm leading-6">
-            They receive a one-time email link and become active after signing
-            in.
+            Share the reusable member code. New members register their own email
+            and password and become active immediately.
           </p>
-          <div className="mt-6">
-            <InviteMemberForm />
-          </div>
+          <Link
+            className="text-mint border-mint/30 mt-6 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
+            href="/admin/security"
+          >
+            Manage access codes
+          </Link>
         </section>
       </div>
     </main>

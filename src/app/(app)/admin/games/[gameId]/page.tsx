@@ -1,8 +1,14 @@
 import { notFound } from "next/navigation";
 
+import {
+  AdminRequestQueue,
+  type AdminGameRequest,
+} from "@/components/games/admin-request-queue";
 import { GameAdminConsole } from "@/components/games/game-admin-console";
+import { GameRealtimeRefresh } from "@/components/games/game-realtime-refresh";
 import { GameSummaryCard } from "@/components/games/game-summary";
 import type { PlayerCardData } from "@/components/games/player-card";
+import { RegistrationToggle } from "@/components/games/registration-toggle";
 import { getClubContext } from "@/data/club";
 import { money, signedAmount } from "@/domain/money";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -12,6 +18,7 @@ interface GameRow {
   name: string;
   status: "draft" | "active" | "finalized";
   version: number;
+  registration_open: boolean;
 }
 
 interface PlayerRow {
@@ -33,6 +40,14 @@ interface ProfileRow {
   display_name: string;
 }
 
+interface RequestRow {
+  id: string;
+  membership_id: string;
+  action: "join" | "add_on" | "exit";
+  amount: number;
+  created_at: string;
+}
+
 export default async function AdminGamePage({
   params,
 }: {
@@ -47,7 +62,7 @@ export default async function AdminGamePage({
   const supabase = await createServerSupabaseClient();
   const { data: gameData, error: gameError } = await supabase
     .from("games")
-    .select("id, name, status, version")
+    .select("id, name, status, version, registration_open")
     .eq("id", gameId)
     .eq("club_id", context.club.id)
     .maybeSingle();
@@ -62,13 +77,24 @@ export default async function AdminGamePage({
     .select("id, member_id, status, total_buy_in, total_cash_out, net_result")
     .eq("game_id", game.id)
     .order("joined_at");
-  const { data: membershipData, error: membershipError } = await supabase
-    .from("memberships")
-    .select("id, user_id")
-    .eq("club_id", context.club.id)
-    .eq("status", "active");
+  const [
+    { data: membershipData, error: membershipError },
+    { data: requestData, error: requestError },
+  ] = await Promise.all([
+    supabase
+      .from("memberships")
+      .select("id, user_id")
+      .eq("club_id", context.club.id)
+      .eq("status", "active"),
+    supabase
+      .from("game_action_requests")
+      .select("id, membership_id, action, amount, created_at")
+      .eq("game_id", game.id)
+      .eq("status", "pending")
+      .order("created_at"),
+  ]);
 
-  if (playerError || membershipError) {
+  if (playerError || membershipError || requestError) {
     throw new Error("Could not load game administration data.");
   }
 
@@ -112,6 +138,18 @@ export default async function AdminGamePage({
       id: membership.id,
       displayName: displayNames.get(membership.user_id) ?? "Active club member",
     }));
+  const requests: ReadonlyArray<AdminGameRequest> = (
+    (requestData ?? []) as ReadonlyArray<RequestRow>
+  ).map((request) => ({
+    id: request.id,
+    action: request.action,
+    amount: request.amount,
+    displayName:
+      displayNames.get(
+        membershipById.get(request.membership_id)?.user_id ?? "",
+      ) ?? "Club member",
+    createdAt: request.created_at,
+  }));
   const totalBuyIn = players.reduce(
     (total, player) => money(total + player.totalBuyIn),
     money(0),
@@ -127,6 +165,7 @@ export default async function AdminGamePage({
 
   return (
     <main>
+      <GameRealtimeRefresh clubId={context.club.id} gameId={game.id} />
       <p className="text-mint text-sm font-semibold tracking-[0.2em] uppercase">
         Game control
       </p>
@@ -134,13 +173,27 @@ export default async function AdminGamePage({
         {game.name}
       </h1>
       <div className="mt-8 grid gap-6 lg:grid-cols-[0.75fr_1.25fr]">
-        <GameSummaryCard
-          difference={totalCashOut - totalBuyIn}
-          status={game.status}
-          totalBuyIn={totalBuyIn}
-          totalCashOut={totalCashOut}
-          unitName={context.club.unitName}
-        />
+        <div className="space-y-6">
+          <GameSummaryCard
+            difference={totalCashOut - totalBuyIn}
+            status={game.status}
+            totalBuyIn={totalBuyIn}
+            totalCashOut={totalCashOut}
+            unitName={context.club.unitName}
+          />
+          <RegistrationToggle
+            gameId={game.id}
+            gameVersion={game.version}
+            open={game.registration_open}
+          />
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">Member requests</h2>
+            <AdminRequestQueue
+              requests={requests}
+              unitName={context.club.unitName}
+            />
+          </section>
+        </div>
         <GameAdminConsole
           availableMembers={availableMembers}
           game={{

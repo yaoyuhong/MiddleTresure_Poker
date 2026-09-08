@@ -1,10 +1,15 @@
 import Link from "next/link";
 
 import { GameRealtimeRefresh } from "@/components/games/game-realtime-refresh";
+import {
+  MemberGameRequestPanel,
+  type PendingGameRequest,
+} from "@/components/games/member-game-request-panel";
 import { GameSummaryCard } from "@/components/games/game-summary";
 import { PlayerCard } from "@/components/games/player-card";
 import { getClubContext } from "@/data/club";
 import { getActiveGame } from "@/data/games";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export default async function ClubHomePage() {
   const context = await getClubContext();
@@ -43,9 +48,38 @@ export default async function ClubHomePage() {
     );
   }
 
+  let playerStatus: "active" | "exited" | null = null;
+  let pendingRequest: PendingGameRequest | null = null;
+  if (context.role === "member" && context.membershipId) {
+    const supabase = await createServerSupabaseClient();
+    const [
+      { data: player, error: playerError },
+      { data: request, error: requestError },
+    ] = await Promise.all([
+      supabase
+        .from("game_players")
+        .select("status")
+        .eq("game_id", game.id)
+        .eq("member_id", context.membershipId)
+        .maybeSingle(),
+      supabase
+        .from("game_action_requests")
+        .select("id, action, amount")
+        .eq("game_id", game.id)
+        .eq("membership_id", context.membershipId)
+        .eq("status", "pending")
+        .maybeSingle(),
+    ]);
+    if (playerError || requestError) {
+      throw new Error("Could not load your game request status.");
+    }
+    playerStatus = (player?.status as "active" | "exited" | undefined) ?? null;
+    pendingRequest = request as PendingGameRequest | null;
+  }
+
   return (
     <main>
-      <GameRealtimeRefresh gameId={game.id} />
+      <GameRealtimeRefresh clubId={club.id} gameId={game.id} />
       <div className="mb-6">
         <p className="text-mint text-sm font-semibold tracking-[0.2em] uppercase">
           Now playing
@@ -82,6 +116,17 @@ export default async function ClubHomePage() {
           </div>
         </section>
       </div>
+      {context.role === "member" ? (
+        <div className="mt-6">
+          <MemberGameRequestPanel
+            gameId={game.id}
+            pendingRequest={pendingRequest}
+            playerStatus={playerStatus}
+            registrationOpen={game.registrationOpen}
+            unitName={club.unitName}
+          />
+        </div>
+      ) : null}
     </main>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { MagicLinkForm } from "@/components/auth/magic-link-form";
+import { PasswordLoginForm } from "@/components/auth/password-login-form";
 
 export default function LoginPage() {
   return (
@@ -24,13 +24,25 @@ export default function LoginPage() {
             Welcome back
           </h1>
           <p className="text-sand/50 mt-3 text-sm leading-6">
-            Use the email address your club administrator invited. No password
-            is required.
+            Sign in with the email and password used during invite-code
+            registration.
           </p>
           <div className="mt-7">
-            <MagicLinkForm />
+            <PasswordLoginForm />
           </div>
+          <Link
+            className="text-sand/45 hover:text-mint mt-4 inline-block text-sm"
+            href="/forgot-password"
+          >
+            Forgot password?
+          </Link>
         </section>
+        <p className="text-sand/45 mt-5 text-center text-sm">
+          Have an invite code?{" "}
+          <Link className="text-mint font-semibold" href="/register">
+            Create an account
+          </Link>
+        </p>
         <p className="text-sand/35 mt-5 text-center text-xs leading-5">
           Club records only. This service does not process payments.
         </p>

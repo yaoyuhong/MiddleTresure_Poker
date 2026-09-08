@@ -25,12 +25,20 @@ export default function Home() {
               PRIVATE CLUB
             </span>
           </div>
-          <Link
-            className="border-sand/20 text-sand hover:border-mint/70 hover:text-mint rounded-full border px-4 py-2 text-sm font-semibold transition"
-            href="/login"
-          >
-            Member sign in
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              className="text-sand/60 hover:text-mint px-3 py-2 text-sm font-semibold"
+              href="/register"
+            >
+              Register
+            </Link>
+            <Link
+              className="border-sand/20 text-sand hover:border-mint/70 hover:text-mint rounded-full border px-4 py-2 text-sm font-semibold transition"
+              href="/login"
+            >
+              Sign in
+            </Link>
+          </div>
         </header>
 
         <section className="grid flex-1 items-center gap-12 py-16 lg:grid-cols-[1.15fr_0.85fr] lg:py-20">
@@ -51,9 +59,9 @@ export default function Home() {
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Link
                 className="bg-mint text-ink hover:bg-mint-bright rounded-full px-6 py-3.5 font-bold transition"
-                href="/login"
+                href="/register"
               >
-                Open club
+                Register with a code
               </Link>
               <span className="text-sand/45 flex items-center px-2 text-sm">
                 Access requires an invitation
