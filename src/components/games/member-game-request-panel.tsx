@@ -179,22 +179,24 @@ function AmountRequestForm({
   submitLabel: string;
   unitName: string;
 }) {
+  const inputId = `${action}-amount`;
   return (
     <form className="mt-5" onSubmit={(event) => onSubmit(event, action)}>
-      <label className="block">
-        <span className="text-sand/70 text-sm font-semibold">{label}</span>
-        <div className="focus-within:border-mint mt-2 flex items-center rounded-2xl border border-white/10 bg-black/20">
-          <input
-            className="text-sand min-h-12 min-w-0 flex-1 bg-transparent px-4 outline-none"
-            min={allowZero ? 0 : 1}
-            name="amount"
-            required
-            step={1}
-            type="number"
-          />
-          <span className="text-sand/35 pr-4 text-xs">{unitName}</span>
-        </div>
+      <label className="text-sand/70 text-sm font-semibold" htmlFor={inputId}>
+        {label}
       </label>
+      <div className="focus-within:border-mint mt-2 flex items-center rounded-2xl border border-white/10 bg-black/20">
+        <input
+          className="text-sand min-h-12 min-w-0 flex-1 bg-transparent px-4 outline-none"
+          id={inputId}
+          min={allowZero ? 0 : 1}
+          name="amount"
+          required
+          step={1}
+          type="number"
+        />
+        <span className="text-sand/35 pr-4 text-xs">{unitName}</span>
+      </div>
       <button
         className="bg-mint text-ink mt-3 min-h-11 rounded-full px-5 font-bold disabled:opacity-60"
         disabled={disabled}
