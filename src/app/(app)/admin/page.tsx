@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getClubContext } from "@/data/club";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const actions = [
   {
@@ -24,8 +25,20 @@ const actions = [
 export default async function AdminPage() {
   const context = await getClubContext();
 
-  if (context.role !== "admin") {
+  if (context.role !== "admin" || !context.club) {
     notFound();
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { data: openGames, error } = await supabase
+    .from("games")
+    .select("id, name, status")
+    .eq("club_id", context.club.id)
+    .in("status", ["draft", "active"])
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error("Could not load games.");
   }
 
   return (
@@ -55,6 +68,29 @@ export default async function AdminPage() {
           </Link>
         ))}
       </div>
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">Open game work</h2>
+        <div className="mt-3 space-y-2">
+          {(openGames ?? []).length === 0 ? (
+            <p className="text-sand/40 rounded-2xl border border-dashed border-white/10 p-5 text-sm">
+              No draft or active game.
+            </p>
+          ) : (
+            (openGames ?? []).map((game) => (
+              <Link
+                className="hover:border-mint/25 flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4"
+                href={`/admin/games/${game.id}`}
+                key={game.id}
+              >
+                <strong>{game.name}</strong>
+                <span className="text-mint text-xs font-semibold capitalize">
+                  {game.status}
+                </span>
+              </Link>
+            ))
+          )}
+        </div>
+      </section>
     </main>
   );
 }

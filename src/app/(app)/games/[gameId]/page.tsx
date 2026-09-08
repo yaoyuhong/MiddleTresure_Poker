@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 import { GameSummaryCard } from "@/components/games/game-summary";
 import {
@@ -145,6 +146,14 @@ export default async function FinalizedGamePage({
       <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em]">
         {game.name}
       </h1>
+      {context.role === "admin" ? (
+        <Link
+          className="text-sand/60 hover:text-mint mt-4 inline-flex rounded-full border border-white/10 px-4 py-2 text-sm font-semibold"
+          href={`/admin/games/${game.id}/correction`}
+        >
+          Create audited correction
+        </Link>
+      ) : null}
       <div className="mt-8 grid gap-6 lg:grid-cols-[0.75fr_1.25fr]">
         <div className="space-y-6">
           <GameSummaryCard
