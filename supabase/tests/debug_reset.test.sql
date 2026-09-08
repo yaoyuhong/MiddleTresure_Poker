@@ -141,6 +141,8 @@ select lives_ok(
   'service role can perform confirmed debug reset'
 );
 
+reset role;
+
 select results_eq(
   $$ select email::text from auth.users $$,
   $$ values ('keeper@example.test'::text) $$,
