@@ -58,6 +58,11 @@ select lives_ok(
   'administrator can initialize the member code'
 );
 
+reset role;
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
+select set_config('request.jwt.claim.sub', '', true);
+
 select isnt(
   (
     select code_hash
@@ -68,11 +73,6 @@ select isnt(
   'MTP-M-23456789ABCDEFGH',
   'database stores only a salted code hash'
 );
-
-reset role;
-set local role service_role;
-select set_config('request.jwt.claim.role', 'service_role', true);
-select set_config('request.jwt.claim.sub', '', true);
 
 select is(
   public.check_registration_code(
