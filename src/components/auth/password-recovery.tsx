@@ -18,9 +18,11 @@ export function ForgotPasswordForm() {
       .toLowerCase();
     setState("pending");
     try {
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      callbackUrl.searchParams.set("next", "/reset-password");
       const { error } =
         await getBrowserSupabaseClient().auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: callbackUrl.toString(),
         });
       setState(error ? "error" : "sent");
     } catch {
