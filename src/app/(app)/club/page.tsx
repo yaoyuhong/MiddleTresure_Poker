@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { GameRealtimeRefresh } from "@/components/games/game-realtime-refresh";
 import { GameSummaryCard } from "@/components/games/game-summary";
 import { PlayerCard } from "@/components/games/player-card";
 import { getClubContext } from "@/data/club";
@@ -44,6 +45,7 @@ export default async function ClubHomePage() {
 
   return (
     <main>
+      <GameRealtimeRefresh gameId={game.id} />
       <div className="mb-6">
         <p className="text-mint text-sm font-semibold tracking-[0.2em] uppercase">
           Now playing
