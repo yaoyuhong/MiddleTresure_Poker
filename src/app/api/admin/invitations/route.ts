@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = createAdminSupabaseClient();
-  const redirectTo = new URL("/auth/callback", request.url).toString();
+  const redirectTo = new URL("/auth/confirm", request.url).toString();
   const { data: invited, error: inviteError } =
     await admin.auth.admin.inviteUserByEmail(input.data.email, {
       data: { display_name: input.data.displayName },
