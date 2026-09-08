@@ -6,3 +6,7 @@ export const invitationInputSchema = z.object({
 });
 
 export type InvitationInput = z.infer<typeof invitationInputSchema>;
+
+export const memberAccessSchema = z.object({
+  action: z.enum(["deactivate", "reactivate"]),
+});

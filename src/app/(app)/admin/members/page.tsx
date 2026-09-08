@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 
 import { InviteMemberForm } from "@/components/members/invite-member-form";
+import {
+  MemberList,
+  type MemberListRow,
+} from "@/components/members/member-list";
 import { getClubContext } from "@/data/club";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -52,6 +56,14 @@ export default async function MembersPage() {
       profile.display_name,
     ]),
   );
+  const memberRows: ReadonlyArray<MemberListRow> = memberships.map(
+    (membership) => ({
+      id: membership.id,
+      displayName: names.get(membership.user_id) ?? "Invited member",
+      role: membership.role,
+      status: membership.status,
+    }),
+  );
 
   return (
     <main>
@@ -66,26 +78,7 @@ export default async function MembersPage() {
           <h2 className="mb-3 text-lg font-semibold">
             Club members · {memberships.length}
           </h2>
-          <div className="space-y-2">
-            {memberships.map((membership) => (
-              <div
-                className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4"
-                key={membership.id}
-              >
-                <span>
-                  <strong className="block">
-                    {names.get(membership.user_id) ?? "Invited member"}
-                  </strong>
-                  <span className="text-sand/35 mt-1 block text-xs">
-                    {membership.role}
-                  </span>
-                </span>
-                <span className="text-sand/55 rounded-full bg-white/5 px-3 py-1.5 text-xs font-semibold capitalize">
-                  {membership.status}
-                </span>
-              </div>
-            ))}
-          </div>
+          <MemberList members={memberRows} />
         </section>
         <section className="bg-panel h-fit rounded-[2rem] border border-white/10 p-5">
           <h2 className="text-xl font-semibold">Invite a member</h2>
