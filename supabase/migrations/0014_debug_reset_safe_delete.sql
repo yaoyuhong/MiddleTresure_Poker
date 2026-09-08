@@ -1,23 +1,3 @@
-create or replace function public.reject_immutable_mutation()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
-begin
-  if auth.role() = 'service_role'
-    and current_setting('app.debug_reset', true) = 'enabled'
-  then
-    if tg_op = 'DELETE' then
-      return old;
-    end if;
-    return new;
-  end if;
-
-  raise exception '% records are immutable', tg_table_name
-    using errcode = '55000';
-end;
-$$;
-
 create or replace function public.reset_debug_club(
   retained_admin_email text,
   destructive_confirmation text,
