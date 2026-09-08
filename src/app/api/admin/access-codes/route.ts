@@ -34,7 +34,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const result = data as { rotated_at?: string } | null;
+  const result = data as { replayed?: boolean; rotated_at?: string } | null;
+  if (result?.replayed) {
+    return NextResponse.json(
+      { error: "rotation_already_completed" },
+      { status: 409 },
+    );
+  }
   return NextResponse.json(
     {
       kind: input.data.kind,

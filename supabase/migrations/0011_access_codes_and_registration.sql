@@ -13,7 +13,7 @@ create table public.club_access_codes (
 
 create table public.registration_attempts (
   fingerprint text primary key,
-  attempt_count integer not null check (attempt_count between 1 and 5),
+  attempt_count integer not null check (attempt_count between 1 and 20),
   window_started_at timestamptz not null,
   blocked_until timestamptz,
   updated_at timestamptz not null default timezone('utc', now())
@@ -35,6 +35,7 @@ set search_path = ''
 as $$
 declare
   fingerprint_value text;
+  network_fingerprint text;
   matched_kind public.access_code_kind;
   current_attempt public.registration_attempts%rowtype;
   now_at timestamptz := timezone('utc', now());
@@ -49,11 +50,15 @@ begin
     return null;
   end if;
 
-  fingerprint_value := encode(
+  fingerprint_value := 'combo:' || encode(
     extensions.digest(
       lower(trim(normalized_email)) || ':' || network_key,
       'sha256'
     ),
+    'hex'
+  );
+  network_fingerprint := 'network:' || encode(
+    extensions.digest(network_key, 'sha256'),
     'hex'
   );
 
@@ -67,6 +72,14 @@ begin
     and current_attempt.blocked_until is not null
     and current_attempt.blocked_until > now_at
   then
+    return null;
+  end if;
+  if exists (
+    select 1
+    from public.registration_attempts
+    where fingerprint = network_fingerprint
+      and blocked_until > now_at
+  ) then
     return null;
   end if;
 
@@ -113,6 +126,34 @@ begin
     blocked_until = case
       when registration_attempts.window_started_at >= now_at - interval '1 hour'
         and registration_attempts.attempt_count + 1 >= 5
+        then now_at + interval '1 hour'
+      else null
+    end,
+    updated_at = now_at;
+
+  insert into public.registration_attempts (
+    fingerprint,
+    attempt_count,
+    window_started_at,
+    blocked_until,
+    updated_at
+  )
+  values (network_fingerprint, 1, now_at, null, now_at)
+  on conflict (fingerprint)
+  do update set
+    attempt_count = case
+      when registration_attempts.window_started_at < now_at - interval '1 hour'
+        then 1
+      else least(20, registration_attempts.attempt_count + 1)
+    end,
+    window_started_at = case
+      when registration_attempts.window_started_at < now_at - interval '1 hour'
+        then now_at
+      else registration_attempts.window_started_at
+    end,
+    blocked_until = case
+      when registration_attempts.window_started_at >= now_at - interval '1 hour'
+        and registration_attempts.attempt_count + 1 >= 20
         then now_at + interval '1 hour'
       else null
     end,
@@ -306,7 +347,7 @@ begin
     target_request_id
   );
   if previous_result is not null then
-    return previous_result;
+    return previous_result || jsonb_build_object('replayed', true);
   end if;
 
   select *

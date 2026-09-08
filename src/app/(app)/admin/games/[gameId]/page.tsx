@@ -8,6 +8,7 @@ import { GameAdminConsole } from "@/components/games/game-admin-console";
 import { GameRealtimeRefresh } from "@/components/games/game-realtime-refresh";
 import { GameSummaryCard } from "@/components/games/game-summary";
 import type { PlayerCardData } from "@/components/games/player-card";
+import { RegistrationToggle } from "@/components/games/registration-toggle";
 import { getClubContext } from "@/data/club";
 import { money, signedAmount } from "@/domain/money";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -17,6 +18,7 @@ interface GameRow {
   name: string;
   status: "draft" | "active" | "finalized";
   version: number;
+  registration_open: boolean;
 }
 
 interface PlayerRow {
@@ -60,7 +62,7 @@ export default async function AdminGamePage({
   const supabase = await createServerSupabaseClient();
   const { data: gameData, error: gameError } = await supabase
     .from("games")
-    .select("id, name, status, version")
+    .select("id, name, status, version, registration_open")
     .eq("id", gameId)
     .eq("club_id", context.club.id)
     .maybeSingle();
@@ -163,7 +165,7 @@ export default async function AdminGamePage({
 
   return (
     <main>
-      <GameRealtimeRefresh gameId={game.id} />
+      <GameRealtimeRefresh clubId={context.club.id} gameId={game.id} />
       <p className="text-mint text-sm font-semibold tracking-[0.2em] uppercase">
         Game control
       </p>
@@ -178,6 +180,11 @@ export default async function AdminGamePage({
             totalBuyIn={totalBuyIn}
             totalCashOut={totalCashOut}
             unitName={context.club.unitName}
+          />
+          <RegistrationToggle
+            gameId={game.id}
+            gameVersion={game.version}
+            open={game.registration_open}
           />
           <section>
             <h2 className="mb-3 text-lg font-semibold">Member requests</h2>

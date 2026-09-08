@@ -5,7 +5,13 @@ import { useEffect } from "react";
 
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 
-export function GameRealtimeRefresh({ gameId }: { readonly gameId: string }) {
+export function GameRealtimeRefresh({
+  clubId,
+  gameId,
+}: {
+  readonly clubId?: string;
+  readonly gameId: string;
+}) {
   const router = useRouter();
 
   useEffect(() => {
@@ -57,13 +63,23 @@ export function GameRealtimeRefresh({ gameId }: { readonly gameId: string }) {
         },
         refresh,
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "memberships",
+          filter: clubId ? `club_id=eq.${clubId}` : undefined,
+        },
+        refresh,
+      )
       .subscribe();
 
     return () => {
       clearTimeout(timer);
       void supabase.removeChannel(channel);
     };
-  }, [gameId, router]);
+  }, [clubId, gameId, router]);
 
   return null;
 }

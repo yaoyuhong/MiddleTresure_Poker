@@ -19,17 +19,20 @@ export function MemberGameRequestPanel({
   gameId,
   pendingRequest,
   playerStatus,
+  registrationOpen = true,
   unitName,
 }: {
   gameId: string;
   pendingRequest: PendingGameRequest | null;
   playerStatus: "active" | "exited" | null;
+  registrationOpen?: boolean;
   unitName: string;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
   const retry = useRef<RequestPayload | null>(null);
+  const cancelRequestId = useRef<string | null>(null);
 
   async function submit(
     event: FormEvent<HTMLFormElement>,
@@ -65,6 +68,7 @@ export function MemberGameRequestPanel({
   }
 
   async function cancel() {
+    cancelRequestId.current ??= crypto.randomUUID();
     setPending(true);
     setError(false);
     try {
@@ -73,13 +77,15 @@ export function MemberGameRequestPanel({
         {
           method: "PATCH",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ requestId: crypto.randomUUID() }),
+          body: JSON.stringify({ requestId: cancelRequestId.current }),
         },
       );
       if (!response.ok) {
+        if (response.status < 500) cancelRequestId.current = null;
         setError(true);
         return;
       }
+      cancelRequestId.current = null;
       router.refresh();
     } catch {
       setError(true);
@@ -113,6 +119,14 @@ export function MemberGameRequestPanel({
     return (
       <p className="text-sand/45 rounded-2xl border border-white/10 p-5 text-sm">
         Your participation in this game is complete.
+      </p>
+    );
+  }
+
+  if (playerStatus === null && !registrationOpen) {
+    return (
+      <p className="text-sand/45 rounded-2xl border border-white/10 p-5 text-sm">
+        Registration for this game is closed.
       </p>
     );
   }

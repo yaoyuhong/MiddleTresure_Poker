@@ -7,6 +7,9 @@ create type public.game_request_status as enum (
 );
 create type public.game_request_decision as enum ('approve', 'reject');
 
+alter table public.games
+add column registration_open boolean not null default true;
+
 create table public.game_action_requests (
   id uuid primary key default extensions.gen_random_uuid(),
   club_id uuid not null references public.clubs (id) on delete restrict,
@@ -28,6 +31,7 @@ create table public.game_action_requests (
     (action in ('join', 'add_on') and amount > 0)
     or (action = 'exit' and amount >= 0)
   ),
+  check (amount <= 9007199254740991),
   check (
     (action = 'join' and game_player_id is null)
     or (action in ('add_on', 'exit') and game_player_id is not null)
@@ -66,6 +70,7 @@ using (
     select membership.id
     from public.memberships membership
     where membership.user_id = auth.uid()
+      and membership.status = 'active'
   )
   or public.is_club_admin(club_id)
 );
@@ -126,11 +131,13 @@ begin
 
   if target_game.status = 'finalized'
     or (target_action in ('add_on', 'exit') and target_game.status <> 'active')
+    or (target_action = 'join' and not target_game.registration_open)
   then
     raise exception using errcode = '55000', message = 'Requests require an open game';
   end if;
 
-  if (target_action in ('join', 'add_on') and target_amount <= 0)
+  if target_amount > 9007199254740991
+    or (target_action in ('join', 'add_on') and target_amount <= 0)
     or (target_action = 'exit' and target_amount < 0)
   then
     raise exception using errcode = '22003', message = 'Invalid request amount';
@@ -276,8 +283,7 @@ begin
   select *
   into before_request
   from public.game_action_requests
-  where id = target_game_request_id
-  for update;
+  where id = target_game_request_id;
   if before_request.id is null then
     raise exception using errcode = 'P0002', message = 'Request not found';
   end if;
@@ -286,6 +292,11 @@ begin
   into target_game
   from public.games
   where id = before_request.game_id
+  for update;
+  select *
+  into before_request
+  from public.game_action_requests
+  where id = target_game_request_id
   for update;
   actor := public._require_club_admin(before_request.club_id);
 
@@ -363,6 +374,98 @@ begin
 end;
 $$;
 
+create or replace function public.set_game_registration(
+  target_game_id uuid,
+  target_open boolean,
+  expected_version bigint,
+  target_request_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  actor uuid;
+  before_game public.games%rowtype;
+  changed_game public.games%rowtype;
+  previous_result jsonb;
+begin
+  if target_open is null or target_request_id is null then
+    raise exception using errcode = '22023', message = 'Invalid registration state';
+  end if;
+  select *
+  into before_game
+  from public.games
+  where id = target_game_id
+  for update;
+  if before_game.id is null then
+    raise exception using errcode = 'P0002', message = 'Game not found';
+  end if;
+  actor := public._require_club_admin(before_game.club_id);
+  previous_result := public._request_result(
+    'game.registration.toggle',
+    target_request_id
+  );
+  if previous_result is not null then
+    return previous_result;
+  end if;
+  if before_game.status = 'finalized' then
+    raise exception using errcode = '55000', message = 'Finalized registration cannot change';
+  end if;
+  if before_game.version <> expected_version then
+    raise exception using errcode = '40001', message = 'Stale game version';
+  end if;
+
+  update public.games
+  set
+    registration_open = target_open,
+    version = version + 1,
+    updated_at = timezone('utc', now())
+  where id = before_game.id
+  returning * into changed_game;
+
+  previous_result := to_jsonb(changed_game);
+  perform public._write_audit(
+    changed_game.club_id,
+    actor,
+    'game.registration.toggle',
+    'game',
+    changed_game.id,
+    target_request_id,
+    to_jsonb(before_game),
+    previous_result
+  );
+  return previous_result;
+end;
+$$;
+
+create or replace function public.block_finalize_with_pending_requests()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.status = 'finalized'
+    and old.status <> 'finalized'
+    and exists (
+      select 1
+      from public.game_action_requests request
+      where request.game_id = new.id
+        and request.status = 'pending'
+    )
+  then
+    raise exception using errcode = '55000', message = 'Pending requests must be reviewed before finalization';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger games_block_pending_request_finalization
+before update of status on public.games
+for each row execute function public.block_finalize_with_pending_requests();
+
 revoke all on table public.game_action_requests from public;
 grant select on table public.game_action_requests to authenticated;
 
@@ -374,5 +477,8 @@ grant execute on function public.cancel_game_action_request(uuid, uuid) to authe
 
 revoke all on function public.review_game_action_request(uuid, public.game_request_decision, text, uuid) from public;
 grant execute on function public.review_game_action_request(uuid, public.game_request_decision, text, uuid) to authenticated;
+
+revoke all on function public.set_game_registration(uuid, boolean, bigint, uuid) from public;
+grant execute on function public.set_game_registration(uuid, boolean, bigint, uuid) to authenticated;
 
 alter publication supabase_realtime add table public.game_action_requests;

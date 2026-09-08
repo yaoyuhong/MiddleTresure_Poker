@@ -27,6 +27,7 @@ export function AdminRequestQueue({
   const router = useRouter();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const retry = useRef<ReviewRetry | null>(null);
 
   async function review(entityId: string, decision: ReviewRetry["decision"]) {
@@ -50,7 +51,7 @@ export function AdminRequestQueue({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           decision,
-          note: "",
+          note: notes[entityId] ?? "",
           requestId: retry.current.requestId,
         }),
       });
@@ -118,6 +119,20 @@ export function AdminRequestQueue({
               Reject
             </button>
           </div>
+          <label className="mt-3 block">
+            <span className="text-sand/45 text-xs">Review note (optional)</span>
+            <textarea
+              className="text-sand focus:border-mint mt-1 min-h-16 w-full rounded-xl border border-white/10 bg-black/20 p-3 text-sm outline-none"
+              maxLength={500}
+              onChange={(event) =>
+                setNotes((current) => ({
+                  ...current,
+                  [request.id]: event.target.value,
+                }))
+              }
+              value={notes[request.id] ?? ""}
+            />
+          </label>
         </article>
       ))}
       {error ? (

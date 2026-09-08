@@ -30,6 +30,12 @@ export default function LoginPage() {
           <div className="mt-7">
             <PasswordLoginForm />
           </div>
+          <Link
+            className="text-sand/45 hover:text-mint mt-4 inline-block text-sm"
+            href="/forgot-password"
+          >
+            Forgot password?
+          </Link>
         </section>
         <p className="text-sand/45 mt-5 text-center text-sm">
           Have an invite code?{" "}

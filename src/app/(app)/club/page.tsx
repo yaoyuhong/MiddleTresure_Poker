@@ -79,7 +79,7 @@ export default async function ClubHomePage() {
 
   return (
     <main>
-      <GameRealtimeRefresh gameId={game.id} />
+      <GameRealtimeRefresh clubId={club.id} gameId={game.id} />
       <div className="mb-6">
         <p className="text-mint text-sm font-semibold tracking-[0.2em] uppercase">
           Now playing
@@ -122,6 +122,7 @@ export default async function ClubHomePage() {
             gameId={game.id}
             pendingRequest={pendingRequest}
             playerStatus={playerStatus}
+            registrationOpen={game.registrationOpen}
             unitName={club.unitName}
           />
         </div>

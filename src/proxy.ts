@@ -48,5 +48,6 @@ export const config = {
     "/games/:path*",
     "/history/:path*",
     "/ranking/:path*",
+    "/reset-password",
   ],
 };

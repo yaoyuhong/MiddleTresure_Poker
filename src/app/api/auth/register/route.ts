@@ -31,24 +31,18 @@ export async function POST(request: NextRequest) {
   let createdUser = false;
 
   if (user) {
-    const { data: membership } = await admin
+    const { data: membership, error: membershipLookupError } = await admin
       .from("memberships")
       .select("status")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (membership && membership.status !== "invited") {
+    if (
+      membershipLookupError ||
+      !membership ||
+      membership.status !== "active"
+    ) {
       return registrationFailure();
     }
-
-    const { data, error } = await admin.auth.admin.updateUserById(user.id, {
-      password: input.data.password,
-      email_confirm: true,
-      user_metadata: { display_name: input.data.displayName },
-    });
-    if (error || !data.user) {
-      return registrationFailure();
-    }
-    user = data.user;
   } else {
     const { data, error } = await admin.auth.admin.createUser({
       email: input.data.email,
@@ -87,8 +81,18 @@ export async function POST(request: NextRequest) {
     password: input.data.password,
   });
 
+  if (signInError) {
+    return NextResponse.json(
+      { error: "authentication_pending" },
+      {
+        status: 503,
+        headers: { "cache-control": "no-store" },
+      },
+    );
+  }
+
   return NextResponse.json(
-    { ok: true, authenticated: !signInError },
+    { ok: true, authenticated: true },
     {
       status: 201,
       headers: { "cache-control": "no-store" },
@@ -119,10 +123,7 @@ async function findUserByEmail(
 }
 
 function getNetworkKey(request: NextRequest): string {
-  const forwarded =
-    request.headers.get("x-vercel-forwarded-for") ??
-    request.headers.get("x-forwarded-for") ??
-    "unknown";
+  const forwarded = request.headers.get("x-vercel-forwarded-for") ?? "unknown";
   return forwarded.split(",")[0].trim().slice(0, 128);
 }
 

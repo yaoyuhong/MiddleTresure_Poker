@@ -9,6 +9,7 @@ export interface ActiveGameView {
   readonly name: string;
   readonly status: "active";
   readonly version: number;
+  readonly registrationOpen: boolean;
   readonly players: ReadonlyArray<PlayerCardData>;
   readonly totalBuyIn: number;
   readonly totalCashOut: number;
@@ -20,6 +21,7 @@ interface GameRow {
   readonly name: string;
   readonly status: "active";
   readonly version: number;
+  readonly registration_open: boolean;
 }
 
 interface PlayerRow {
@@ -46,7 +48,7 @@ export const getActiveGame = cache(
     const supabase = await createServerSupabaseClient();
     const { data: gameData, error: gameError } = await supabase
       .from("games")
-      .select("id, name, status, version")
+      .select("id, name, status, version, registration_open")
       .eq("club_id", clubId)
       .eq("status", "active")
       .maybeSingle();
@@ -128,6 +130,7 @@ export const getActiveGame = cache(
       name: game.name,
       status: "active",
       version: game.version,
+      registrationOpen: game.registration_open,
       players,
       totalBuyIn,
       totalCashOut,

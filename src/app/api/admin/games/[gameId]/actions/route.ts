@@ -74,6 +74,14 @@ export async function POST(
         requestId,
       );
       break;
+    case "set-registration":
+      result = await context.supabase.rpc("set_game_registration", {
+        target_game_id: gameId,
+        target_open: input.data.open,
+        expected_version: input.data.expectedVersion,
+        target_request_id: requestId,
+      });
+      break;
   }
 
   if (result.error) {

@@ -146,6 +146,13 @@ export function AccessSecurity({
           <code className="text-mint mt-3 block text-xl font-bold break-all">
             {revealedCode}
           </code>
+          <button
+            className="border-mint/30 text-mint mt-4 min-h-10 rounded-full border px-4 text-sm font-semibold"
+            onClick={() => navigator.clipboard.writeText(revealedCode)}
+            type="button"
+          >
+            Copy code
+          </button>
         </section>
       ) : null}
       {rotationError ? (

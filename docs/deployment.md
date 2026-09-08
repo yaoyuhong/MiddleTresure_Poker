@@ -104,6 +104,16 @@ The **Magic Link** template can use the same confirmation route with
 login. Do not use a raw `{{ .SiteURL }}` link because it does not verify or
 establish a session.
 
+Set the **Reset Password** template action link to:
+
+```html
+<a
+  href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password"
+>
+  Reset password
+</a>
+```
+
 ## 4. Create the Vercel Project
 
 1. Open <https://vercel.com/new>.

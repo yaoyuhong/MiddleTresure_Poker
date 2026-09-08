@@ -1,4 +1,4 @@
-export type SupportedEmailOtpType = "invite" | "magiclink";
+export type SupportedEmailOtpType = "invite" | "magiclink" | "recovery";
 
 export interface AuthConfirmation {
   readonly tokenHash: string;
@@ -6,7 +6,11 @@ export interface AuthConfirmation {
   readonly nextPath: string;
 }
 
-const supportedTypes = new Set<SupportedEmailOtpType>(["invite", "magiclink"]);
+const supportedTypes = new Set<SupportedEmailOtpType>([
+  "invite",
+  "magiclink",
+  "recovery",
+]);
 
 export function parseAuthConfirmation(url: URL): AuthConfirmation | null {
   const tokenHash = url.searchParams.get("token_hash");

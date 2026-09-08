@@ -45,4 +45,18 @@ describe("parseAuthConfirmation", () => {
       nextPath: "/club",
     });
   });
+
+  it("accepts password recovery only to a local reset page", () => {
+    expect(
+      parseAuthConfirmation(
+        new URL(
+          "https://club.example/auth/confirm?token_hash=reset&type=recovery&next=/reset-password",
+        ),
+      ),
+    ).toEqual({
+      tokenHash: "reset",
+      type: "recovery",
+      nextPath: "/reset-password",
+    });
+  });
 });
