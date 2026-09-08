@@ -81,6 +81,19 @@ In **Authentication → Email**:
    administrator invitation endpoint, and client sign-in sets
    `shouldCreateUser: false`.
 
+Use token-hash links so invitations work without a browser PKCE verifier. In
+the **Invite user** email template, set the action link to:
+
+```html
+<a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite">
+  Accept invitation
+</a>
+```
+
+The **Magic Link** template can use the same confirmation route with
+`type=magiclink`. Do not use a raw `{{ .SiteURL }}` link because it does not
+verify or establish a session.
+
 ## 4. Create the Vercel Project
 
 1. Open <https://vercel.com/new>.
