@@ -71,6 +71,23 @@ publicly reachable HTTPS site URL because it is embedded in the one-time
 invitation link. The workflow suppresses command output so the administrator
 email is not written to logs.
 
+### Emergency administrator password reset
+
+Use this only for an account that already has an active administrator
+membership:
+
+1. In **GitHub → Settings → Secrets and variables → Actions**, create a
+   temporary repository secret named `ADMIN_RESET_PASSWORD`. Use 12–128
+   characters with at least one letter and number.
+2. Open **Actions → Reset Admin Password → Run workflow**.
+3. Enter the existing administrator email and run the workflow from `main`.
+4. Sign in with the temporary password, immediately change it under
+   **Administrator → Access security**, then delete the
+   `ADMIN_RESET_PASSWORD` repository secret.
+
+The workflow refuses unknown, inactive, or non-administrator users. It does not
+create accounts, grant roles, or print the password.
+
 ## 3. Configure Authentication
 
 In **Authentication → URL Configuration**:

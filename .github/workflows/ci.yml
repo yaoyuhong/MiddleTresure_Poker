@@ -45,5 +45,6 @@ jobs:
           pnpm typecheck
           pnpm test
           pnpm bootstrap:admin -- --help
+          pnpm recover:admin -- --help
           pnpm build
           pnpm exec playwright test
