@@ -19,7 +19,8 @@ Environment:
   ADMIN_RESET_PASSWORD
 
 The command never creates users, grants roles, or prints passwords. The target
-must already have an active administrator membership.`;
+must already have an active administrator membership. After updating, it
+verifies a password login with the same secret before reporting success.`;
 
 const options = parseArgs(process.argv.slice(2));
 if (options.help) {
@@ -33,7 +34,12 @@ validate(options, temporaryPassword);
 if (options.dryRun) {
   console.log(
     JSON.stringify(
-      { valid: true, adminEmail: options.adminEmail, passwordProvided: true },
+      {
+        valid: true,
+        adminEmail: options.adminEmail,
+        passwordProvided: true,
+        loginVerification: "skipped",
+      },
       null,
       2,
     ),
@@ -77,6 +83,18 @@ if (updateError) {
   fail("Supabase could not reset the administrator password.");
 }
 
+const { data: verification, error: verificationError } =
+  await supabase.auth.signInWithPassword({
+    email: options.adminEmail,
+    password: temporaryPassword,
+  });
+if (verificationError || verification.user?.id !== user.id) {
+  fail(
+    `Password was updated but Supabase rejected verification login (${verificationError?.code ?? "user_mismatch"}).`,
+  );
+}
+await supabase.auth.signOut({ scope: "local" });
+
 console.log(
   JSON.stringify(
     {
@@ -84,6 +102,7 @@ console.log(
       adminEmail: options.adminEmail,
       membershipId: membership.id,
       passwordReset: true,
+      loginVerified: true,
     },
     null,
     2,
