@@ -17,7 +17,7 @@ describe("RankingTable", () => {
     );
 
     expect(screen.getAllByText("#1")).toHaveLength(2);
-    expect(screen.getByText("+150 chips")).toBeInTheDocument();
+    expect(screen.getAllByText("+150 chips")).toHaveLength(2);
     expect(screen.getByText("-300 chips")).toBeInTheDocument();
   });
 
