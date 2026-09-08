@@ -88,6 +88,20 @@ membership:
 The workflow refuses unknown, inactive, or non-administrator users. It does not
 create accounts, grant roles, or print the password.
 
+### Complete debug-data reset
+
+For a non-production club that needs a clean registration test:
+
+1. Merge the guarded reset migration and run **Deploy Supabase** from `main`.
+2. Run **Actions → Reset Debug Club** from `main`.
+3. Keep `yao990729@gmail.com` as the retained administrator email.
+4. Enter the exact confirmation `DELETE_ALL_DEBUG_DATA`.
+
+This permanently deletes every other Auth user plus all games, seasons,
+requests, transactions, settlements, and prior audit entries. It preserves the
+club, existing access-code hashes, and retained active administrator. The
+workflow verifies exactly one Auth user remains before reporting success.
+
 ## 3. Configure Authentication
 
 In **Authentication → URL Configuration**:

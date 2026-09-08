@@ -15,7 +15,8 @@
     "test:e2e": "playwright test",
     "format:check": "prettier --check .",
     "bootstrap:admin": "node --env-file-if-exists=.env.local scripts/bootstrap-admin.mjs",
-    "recover:admin": "node --env-file-if-exists=.env.local scripts/reset-admin-password.mjs"
+    "recover:admin": "node --env-file-if-exists=.env.local scripts/reset-admin-password.mjs",
+    "reset:debug-club": "node --env-file-if-exists=.env.local scripts/reset-debug-club.mjs"
   },
   "license": "UNLICENSED",
   "packageManager": "pnpm@10.33.3",

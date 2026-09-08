@@ -1,0 +1,65 @@
+name: Reset Debug Club
+
+on:
+  workflow_dispatch:
+    inputs:
+      retained_admin_email:
+        description: Active administrator account to retain
+        required: true
+        default: yao990729@gmail.com
+        type: string
+      confirmation:
+        description: Type DELETE_ALL_DEBUG_DATA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reset-debug-club
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    name: Permanently reset debug data
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://${{ secrets.SUPABASE_PROJECT_ID }}.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RETAINED_ADMIN_EMAIL: ${{ inputs.retained_admin_email }}
+      DESTRUCTIVE_CONFIRMATION: ${{ inputs.confirmation }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check required secrets
+        shell: bash
+        run: |
+          test -n "$SUPABASE_SERVICE_ROLE_KEY" || {
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY is not configured"
+            exit 1
+          }
+          test -n "${{ secrets.SUPABASE_PROJECT_ID }}" || {
+            echo "::error::SUPABASE_PROJECT_ID is not configured"
+            exit 1
+          }
+
+      - name: Reset club and verify retained administrator
+        shell: bash
+        run: |
+          pnpm reset:debug-club -- \
+            --retained-admin-email "$RETAINED_ADMIN_EMAIL" \
+            --confirm "$DESTRUCTIVE_CONFIRMATION" >/dev/null
+          echo "Debug data reset completed and one administrator retained."
