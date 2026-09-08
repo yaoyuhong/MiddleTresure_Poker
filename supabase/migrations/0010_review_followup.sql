@@ -1,4 +1,4 @@
-create or replace function public.shares_active_club(other_user_id uuid)
+create or replace function public.shares_active_club(target_user_id uuid)
 returns boolean
 language sql
 stable
@@ -11,7 +11,7 @@ as $$
     join public.memberships theirs on theirs.club_id = mine.club_id
     where mine.user_id = auth.uid()
       and mine.status = 'active'
-      and theirs.user_id = other_user_id
+      and theirs.user_id = target_user_id
       and theirs.status in ('active', 'inactive')
   );
 $$;
