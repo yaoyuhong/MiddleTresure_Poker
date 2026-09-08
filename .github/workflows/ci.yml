@@ -44,5 +44,6 @@ jobs:
           pnpm lint
           pnpm typecheck
           pnpm test
+          pnpm bootstrap:admin -- --help
           pnpm build
           pnpm exec playwright test

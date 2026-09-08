@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "bootstrap:admin": "node --env-file-if-exists=.env.local scripts/bootstrap-admin.mjs"
   },
   "license": "UNLICENSED",
   "packageManager": "pnpm@10.33.3",

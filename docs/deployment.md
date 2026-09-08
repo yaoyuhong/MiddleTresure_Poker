@@ -21,10 +21,30 @@ monitoring.
    ```
 
 5. Confirm every migration appears under **Database → Migrations**.
-6. Create the first club and administrator through the documented bootstrap
-   script or a reviewed SQL statement after migrations are applied.
 
-## 2. Configure Authentication
+## 2. Bootstrap the First Administrator
+
+Create a local `.env.local` file containing the project URL, publishable key,
+and service-role key. This file is ignored by Git. Validate the command without
+changing Supabase:
+
+```bash
+pnpm bootstrap:admin -- \
+  --club-name "Middle Treasure Poker" \
+  --admin-email "owner@example.com" \
+  --display-name "Club Owner" \
+  --site-url "https://YOUR_PROJECT.vercel.app" \
+  --dry-run
+```
+
+Remove `--dry-run` to create the single club, send the administrator invitation,
+and create the audited administrator membership. The command is idempotent for
+an existing user and never prints the service-role key.
+
+The administrator opens the invitation email and signs in once to activate the
+membership. All later invitations happen through **Manage → Invite members**.
+
+## 3. Configure Authentication
 
 In **Authentication → URL Configuration**:
 
@@ -44,7 +64,7 @@ In **Authentication → Email**:
    administrator invitation endpoint, and client sign-in sets
    `shouldCreateUser: false`.
 
-## 3. Create the Vercel Project
+## 4. Create the Vercel Project
 
 1. Open <https://vercel.com/new>.
 2. Import the GitHub repository.
@@ -61,7 +81,7 @@ In **Authentication → Email**:
    Preview. Do not point preview deployments at production club data.
 6. Redeploy after adding or rotating environment variables.
 
-## 4. Preview Release Gate
+## 5. Preview Release Gate
 
 Before promoting a deployment:
 
@@ -86,7 +106,7 @@ Against the preview deployment, verify:
 - A balanced game closes once and produces a valid transfer plan.
 - Season ranking changes exactly once.
 
-## 5. Domain and Production Promotion
+## 6. Domain and Production Promotion
 
 1. Attach a custom domain under **Vercel → Settings → Domains**.
 2. Add the DNS records Vercel provides.
@@ -95,7 +115,7 @@ Against the preview deployment, verify:
 5. Repeat login, permissions, live update, settlement, and ranking smoke tests
    on the production URL.
 
-## 6. Backups, Monitoring, and Recovery
+## 7. Backups, Monitoring, and Recovery
 
 - Select a Supabase plan with backup and point-in-time recovery appropriate for
   real club records.
@@ -107,7 +127,7 @@ Against the preview deployment, verify:
   back a database by deleting migrations; use a forward corrective migration.
 - Export finalized season records according to the club's retention policy.
 
-## 7. Legal and Privacy Checklist
+## 8. Legal and Privacy Checklist
 
 Before real use:
 

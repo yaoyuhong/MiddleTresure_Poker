@@ -41,4 +41,5 @@ pnpm exec supabase test db
 ```
 
 See [`docs/deployment.md`](docs/deployment.md) for hosted setup, secrets,
-authentication URLs, release checks, backups, and production promotion.
+first-administrator bootstrap, authentication URLs, release checks, backups,
+and production promotion.
