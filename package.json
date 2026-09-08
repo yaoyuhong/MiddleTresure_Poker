@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Invite-only poker club operations and settlement",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
