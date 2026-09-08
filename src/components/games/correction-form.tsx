@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 export interface CorrectableTransaction {
   readonly id: string;
@@ -24,6 +24,7 @@ export function CorrectionForm({
   const [rowIds, setRowIds] = useState([0, 1]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
+  const requestId = useRef<string | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,19 +44,28 @@ export function CorrectionForm({
 
     setPending(true);
     setError(false);
-    const response = await fetch(`/api/admin/games/${gameId}/corrections`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-request-id": crypto.randomUUID(),
-      },
-      body: JSON.stringify({
-        expectedVersion: gameVersion,
-        note: String(form.get("note") ?? "").trim(),
-        corrections,
-      }),
-    });
+    requestId.current ??= crypto.randomUUID();
+    let response: Response;
+    try {
+      response = await fetch(`/api/admin/games/${gameId}/corrections`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": requestId.current,
+        },
+        body: JSON.stringify({
+          expectedVersion: gameVersion,
+          note: String(form.get("note") ?? "").trim(),
+          corrections,
+        }),
+      });
+    } catch {
+      setPending(false);
+      setError(true);
+      return;
+    }
     setPending(false);
+    requestId.current = null;
 
     if (response.ok) {
       router.push(`/games/${gameId}`);

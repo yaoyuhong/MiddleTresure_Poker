@@ -38,7 +38,8 @@ export const getSeasonRanking = cache(
       .select("membership_id, display_name, profit, rank")
       .eq("season_id", season.id)
       .order("rank")
-      .order("display_name");
+      .order("display_name")
+      .order("membership_id");
 
     if (error) {
       throw new Error("Could not load season ranking.");

@@ -32,37 +32,60 @@ export function GameAdminConsole({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<"saved" | "error" | null>(null);
+  const [retryRequest, setRetryRequest] = useState<{
+    body: Record<string, unknown>;
+    requestId: string;
+  } | null>(null);
   const allExited =
     players.length > 0 && players.every(({ status }) => status === "exited");
+  const writesBlocked = pending || retryRequest !== null;
 
-  async function mutate(body: Record<string, unknown>) {
+  async function mutate(
+    body: Record<string, unknown>,
+    requestId = crypto.randomUUID(),
+  ) {
     setPending(true);
     setMessage(null);
-    const response = await fetch(`/api/admin/games/${game.id}/actions`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-request-id": crypto.randomUUID(),
-      },
-      body: JSON.stringify({ ...body, expectedVersion: game.version }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`/api/admin/games/${game.id}/actions`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": requestId,
+        },
+        body: JSON.stringify({ ...body, expectedVersion: game.version }),
+      });
+    } catch {
+      setPending(false);
+      setMessage("error");
+      setRetryRequest({ body, requestId });
+      return false;
+    }
+
     setPending(false);
     setMessage(response.ok ? "saved" : "error");
     if (response.ok) {
+      setRetryRequest(null);
       router.refresh();
+      return true;
     }
+    setRetryRequest(null);
+    return false;
   }
 
   async function addPlayer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    await mutate({
+    const saved = await mutate({
       action: "add-player",
       membershipId: String(form.get("membershipId")),
       amount: Number(form.get("amount")),
     });
-    formElement.reset();
+    if (saved) {
+      formElement.reset();
+    }
   }
 
   async function playerAction(
@@ -100,7 +123,7 @@ export function GameAdminConsole({
           {game.status === "draft" ? (
             <button
               className="bg-mint text-ink min-h-11 rounded-full px-5 font-bold disabled:opacity-50"
-              disabled={pending || players.length === 0}
+              disabled={writesBlocked || players.length === 0}
               onClick={() => mutate({ action: "start" })}
               type="button"
             >
@@ -109,7 +132,7 @@ export function GameAdminConsole({
           ) : (
             <button
               className="bg-mint text-ink min-h-11 rounded-full px-5 font-bold disabled:cursor-not-allowed disabled:opacity-35"
-              disabled={pending || !allExited || game.difference !== 0}
+              disabled={writesBlocked || !allExited || game.difference !== 0}
               onClick={() => {
                 if (window.confirm("Finalize and lock this balanced game?")) {
                   mutate({ action: "finalize" });
@@ -134,8 +157,18 @@ export function GameAdminConsole({
         ) : null}
         {message === "error" ? (
           <p className="mt-3 text-sm text-rose-200" role="alert">
-            The change was not saved. Refresh totals and try again.
+            The change was not confirmed.
           </p>
+        ) : null}
+        {retryRequest ? (
+          <button
+            className="mt-3 min-h-10 rounded-full border border-amber-200/20 px-4 text-sm font-semibold text-amber-100"
+            disabled={pending}
+            onClick={() => mutate(retryRequest.body, retryRequest.requestId)}
+            type="button"
+          >
+            Retry the same request safely
+          </button>
         ) : null}
       </section>
 
@@ -161,7 +194,7 @@ export function GameAdminConsole({
           <AmountField label="Initial buy-in" name="amount" />
           <button
             className="border-mint/30 text-mint min-h-11 self-end rounded-full border px-4 text-sm font-bold disabled:opacity-50"
-            disabled={pending}
+            disabled={writesBlocked}
             type="submit"
           >
             Add player
@@ -185,7 +218,7 @@ export function GameAdminConsole({
                   />
                   <button
                     className="bg-mint/10 text-mint self-end rounded-full px-3 text-sm font-semibold"
-                    disabled={pending}
+                    disabled={writesBlocked}
                     type="submit"
                   >
                     Add
@@ -202,7 +235,7 @@ export function GameAdminConsole({
                   />
                   <button
                     className="self-end rounded-full border border-white/10 px-3 text-sm font-semibold"
-                    disabled={pending}
+                    disabled={writesBlocked}
                     type="submit"
                   >
                     Exit

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 export function NewGameForm({
   seasonId,
@@ -11,6 +11,7 @@ export function NewGameForm({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
+  const requestId = useRef<string | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -21,18 +22,27 @@ export function NewGameForm({
     const form = new FormData(event.currentTarget);
     setPending(true);
     setError(false);
-    const response = await fetch("/api/admin/games", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-request-id": crypto.randomUUID(),
-      },
-      body: JSON.stringify({
-        seasonId,
-        name: String(form.get("name") ?? "").trim(),
-      }),
-    });
+    requestId.current ??= crypto.randomUUID();
+    let response: Response;
+    try {
+      response = await fetch("/api/admin/games", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": requestId.current,
+        },
+        body: JSON.stringify({
+          seasonId,
+          name: String(form.get("name") ?? "").trim(),
+        }),
+      });
+    } catch {
+      setPending(false);
+      setError(true);
+      return;
+    }
     setPending(false);
+    requestId.current = null;
 
     if (response.ok) {
       const game = (await response.json()) as { id: string };

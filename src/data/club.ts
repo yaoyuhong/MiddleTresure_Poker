@@ -24,7 +24,7 @@ export const getClubContext = cache(async (): Promise<ClubContext> => {
     redirect("/login");
   }
 
-  const { data: membership, error: membershipError } = await supabase
+  const { data: activeMembership, error: membershipError } = await supabase
     .from("memberships")
     .select("id, club_id, role")
     .eq("user_id", user.id)
@@ -33,6 +33,34 @@ export const getClubContext = cache(async (): Promise<ClubContext> => {
 
   if (membershipError) {
     throw new Error("Could not load club membership.");
+  }
+
+  let membership = activeMembership;
+  if (!membership) {
+    const { data: invitedMembership, error: invitedError } = await supabase
+      .from("memberships")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("status", "invited")
+      .maybeSingle();
+
+    if (invitedError) {
+      throw new Error("Could not inspect club invitation.");
+    }
+    if (invitedMembership) {
+      const { data: activated, error: activationError } = await supabase.rpc(
+        "activate_own_membership",
+        { target_request_id: crypto.randomUUID() },
+      );
+      if (activationError) {
+        throw new Error("Could not activate club membership.");
+      }
+      membership = activated as {
+        id: string;
+        club_id: string;
+        role: "admin" | "member";
+      };
+    }
   }
 
   if (!membership) {

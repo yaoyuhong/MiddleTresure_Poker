@@ -60,7 +60,7 @@ export default async function FinalizedGamePage({
   const club = context.club;
   const { gameId } = await params;
   const supabase = await createServerSupabaseClient();
-  const { data: gameData } = await supabase
+  const { data: gameData, error: gameError } = await supabase
     .from("games")
     .select("id, name, status, settlement_revision")
     .eq("id", gameId)
@@ -68,12 +68,18 @@ export default async function FinalizedGamePage({
     .eq("status", "finalized")
     .maybeSingle();
 
+  if (gameError) {
+    throw new Error("Could not load finalized game.");
+  }
   if (!gameData) {
     notFound();
   }
 
   const game = gameData as GameRow;
-  const [{ data: playerData }, { data: transferData }] = await Promise.all([
+  const [
+    { data: playerData, error: playerError },
+    { data: transferData, error: transferError },
+  ] = await Promise.all([
     supabase
       .from("game_players")
       .select("id, member_id, status, total_buy_in, total_cash_out, net_result")
@@ -87,20 +93,30 @@ export default async function FinalizedGamePage({
       .order("position"),
   ]);
 
+  if (playerError || transferError) {
+    throw new Error("Could not load final settlement.");
+  }
+
   const playerRows = (playerData ?? []) as ReadonlyArray<PlayerRow>;
   const membershipIds = playerRows.map(({ member_id }) => member_id);
-  const { data: membershipData } = await supabase
+  const { data: membershipData, error: membershipError } = await supabase
     .from("memberships")
     .select("id, user_id")
     .in("id", membershipIds);
+  if (membershipError) {
+    throw new Error("Could not load settlement memberships.");
+  }
   const memberships = (membershipData ?? []) as ReadonlyArray<MembershipRow>;
-  const { data: profileData } = await supabase
+  const { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select("id, display_name")
     .in(
       "id",
       memberships.map(({ user_id }) => user_id),
     );
+  if (profileError) {
+    throw new Error("Could not load settlement profiles.");
+  }
   const profiles = (profileData ?? []) as ReadonlyArray<ProfileRow>;
   const userByMembership = new Map(
     memberships.map(({ id, user_id }) => [id, user_id]),

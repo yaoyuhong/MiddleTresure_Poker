@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 export interface SeasonAdminRow {
   readonly id: string;
@@ -17,20 +17,36 @@ export function SeasonAdmin({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
+  const retryRequest = useRef<{ key: string; requestId: string } | null>(null);
 
   async function createSeason(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
+    const name = String(form.get("name") ?? "").trim();
+    const key = `create:${name}`;
+    const requestId =
+      retryRequest.current?.key === key
+        ? retryRequest.current.requestId
+        : crypto.randomUUID();
     setPending(true);
     setError(false);
 
-    const response = await fetch("/api/admin/seasons", {
-      method: "POST",
-      headers: requestHeaders(),
-      body: JSON.stringify({ name: String(form.get("name") ?? "").trim() }),
-    });
+    let response: Response;
+    try {
+      response = await fetch("/api/admin/seasons", {
+        method: "POST",
+        headers: requestHeaders(requestId),
+        body: JSON.stringify({ name }),
+      });
+    } catch {
+      retryRequest.current = { key, requestId };
+      setPending(false);
+      setError(true);
+      return;
+    }
 
+    retryRequest.current = null;
     setPending(false);
     if (response.ok) {
       formElement.reset();
@@ -41,13 +57,27 @@ export function SeasonAdmin({
   }
 
   async function changeSeason(seasonId: string, action: "open" | "close") {
+    const key = `${action}:${seasonId}`;
+    const requestId =
+      retryRequest.current?.key === key
+        ? retryRequest.current.requestId
+        : crypto.randomUUID();
     setPending(true);
     setError(false);
-    const response = await fetch(`/api/admin/seasons/${seasonId}`, {
-      method: "PATCH",
-      headers: requestHeaders(),
-      body: JSON.stringify({ action }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`/api/admin/seasons/${seasonId}`, {
+        method: "PATCH",
+        headers: requestHeaders(requestId),
+        body: JSON.stringify({ action }),
+      });
+    } catch {
+      retryRequest.current = { key, requestId };
+      setPending(false);
+      setError(true);
+      return;
+    }
+    retryRequest.current = null;
     setPending(false);
     if (response.ok) {
       router.refresh();
@@ -123,9 +153,9 @@ export function SeasonAdmin({
   );
 }
 
-function requestHeaders() {
+function requestHeaders(requestId: string) {
   return {
     "content-type": "application/json",
-    "x-request-id": crypto.randomUUID(),
+    "x-request-id": requestId,
   };
 }

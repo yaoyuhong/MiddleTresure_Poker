@@ -39,50 +39,58 @@ export async function POST(request: NextRequest) {
       redirectTo,
     });
 
-  if (inviteError || !invited.user) {
+  const existingUser =
+    inviteError || !invited.user
+      ? await findUserByEmail(admin, input.data.email)
+      : null;
+  const invitedUser = invited.user ?? existingUser;
+  const createdUser = !inviteError && Boolean(invited.user);
+
+  if (!invitedUser) {
     return NextResponse.json({ error: "invitation_failed" }, { status: 409 });
   }
 
   const requestId = crypto.randomUUID();
-  const { data: membership, error: membershipError } = await admin
-    .from("memberships")
-    .insert({
-      club_id: actorMembership.club_id,
-      user_id: invited.user.id,
-      role: "member",
-      status: "invited",
-      invited_by: user.id,
-    })
-    .select("id")
-    .single();
+  const { data: membership, error: membershipError } = await admin.rpc(
+    "ensure_invited_membership",
+    {
+      target_club_id: actorMembership.club_id,
+      target_user_id: invitedUser.id,
+      target_invited_by: user.id,
+      target_request_id: requestId,
+    },
+  );
 
   if (membershipError || !membership) {
-    await admin.auth.admin.deleteUser(invited.user.id);
+    if (createdUser) {
+      await admin.auth.admin.deleteUser(invitedUser.id);
+    }
     return NextResponse.json({ error: "membership_failed" }, { status: 500 });
   }
 
-  const { error: auditError } = await admin.from("audit_logs").insert({
-    club_id: actorMembership.club_id,
-    actor_id: user.id,
-    action: "membership.invited",
-    entity_type: "membership",
-    entity_id: membership.id,
-    request_id: requestId,
-    after_data: {
-      email: input.data.email,
-      display_name: input.data.displayName,
-      role: "member",
-      status: "invited",
-    },
-  });
-
-  if (auditError) {
-    await admin.from("memberships").delete().eq("id", membership.id);
-    await admin.auth.admin.deleteUser(invited.user.id);
-    return NextResponse.json({ error: "audit_failed" }, { status: 500 });
-  }
-
   return NextResponse.json({ membershipId: membership.id }, { status: 201 });
+}
+
+async function findUserByEmail(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  email: string,
+) {
+  for (let page = 1; page <= 20; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({
+      page,
+      perPage: 100,
+    });
+    if (error) {
+      return null;
+    }
+    const user = data.users.find(
+      (candidate) => candidate.email?.toLowerCase() === email,
+    );
+    if (user || data.users.length < 100) {
+      return user ?? null;
+    }
+  }
+  return null;
 }
 
 async function safeJson(request: NextRequest): Promise<unknown> {
