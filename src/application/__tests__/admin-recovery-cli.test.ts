@@ -12,6 +12,7 @@ describe("reset-admin-password CLI", () => {
     expect(output).toContain("--admin-email");
     expect(output).toContain("ADMIN_RESET_PASSWORD");
     expect(output).toContain("--dry-run");
+    expect(output).toContain("verifies a password login");
   });
 
   it("validates without printing the temporary password", () => {
@@ -26,6 +27,7 @@ describe("reset-admin-password CLI", () => {
     );
 
     expect(output).toContain('"adminEmail": "admin@example.com"');
+    expect(output).toContain('"loginVerification": "skipped"');
     expect(output).not.toContain(password);
   });
 
